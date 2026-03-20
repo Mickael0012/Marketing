@@ -1,0 +1,122 @@
+---
+title: "Projet Market"
+format: html
+editor: visual
+---
+
+# Groupe:
+
+**Ang Mingwei et Rousselin Quentin**
+
+========================================
+
+**Partie stat. globale**
+
+**Library et import des données**
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(rAmCharts)
+
+fp <- "data/table_client.csv"
+clients <- read.csv(fp)
+
+fp <- "data/table_vehicule.csv"
+vehicules <- read.csv(fp)
+
+fp <- "data/table_commande_reprise.csv"
+commandes <- read.csv(fp)
+
+fp <- "data/table_financement.csv"
+finances <- read.csv(fp)
+```
+
+Preparation des données
+
+```{r}
+
+commandes$DATE_PANIER <- as.Date(commandes$DATE_PANIER)
+
+```
+
+**Analyse des clients**
+
+```{r}
+# Nombre de clients
+N <- nrow(clients) # Total
+N
+table(clients$GENDER) #Homme/Femme
+year <- 2026
+clients$AGE <- (year - clients$YEAR_NAISSANCE)
+
+# En fonction de l'âge
+ggplot(clients) + aes(AGE, fill=GENDER) + geom_histogram()
+
+```
+
+**Analyse des véhicules**
+
+```{r}
+nrow(vehicules) # Nb total de véhicules
+
+table(vehicules$VEHICULE_TYPE)
+# table(vehicules$VEHICULE_ENERGIE)
+# table(vehicules$VEHICULE_CATEGORIE)
+
+ggplot(vehicules) + aes(VEHICULE_CATEGORIE, fill=VEHICULE_ENERGIE) + geom_bar()
+
+# Nb véhicules par marque
+count(vehicules, VEHICULE_MARQUE, sort = TRUE)
+
+# Nb véhicules par modele
+count(vehicules, VEHICULE_MODELE, sort = TRUE)
+```
+
+**Transactions**
+
+```{r}
+table(commandes$TYPE_PANIER)
+
+summary(commandes$DATE_PANIER)
+```
+
+Marques
+
+```{r}
+# Les marques de voitures qui ont le plus de commandes
+l <- count(cl_com, VEHICULE_MARQUE, sort = TRUE)
+l <- l[1:5,]
+l
+
+by <- join_by(VEHICULE_ID)
+df <- left_join(vehicules[vehicules$VEHICULE_MARQUE %in% l$VEHICULE_MARQUE,], commandes, by)
+
+ggplot(df) + aes(VEHICULE_MARQUE, fill=TYPE_LIVRAISON_COM) + geom_bar()
+
+ggplot(df) + aes(VEHICULE_MARQUE, PRIX_VENTE_TTC_COM) + geom_boxplot()
+
+```
+
+Modeles
+
+```{r}
+
+# Les modeles de voitures qui ont le plus de commandes
+l <- count(cl_com, VEHICULE_MODELE, sort = TRUE)
+l <- l[1:5,]
+l
+
+by <- join_by(VEHICULE_ID)
+df <- left_join(vehicules[vehicules$VEHICULE_MODELE %in% l$VEHICULE_MODELE,], commandes, by)
+
+ggplot(df) + aes(VEHICULE_MODELE, fill=TYPE_LIVRAISON_COM) + geom_bar()
+
+ggplot(df) + aes(VEHICULE_MODELE, PRIX_VENTE_TTC_COM) + geom_boxplot()
+```
+
+**Mon hypothèse:**
+
+Les français achètent-ils moins de voiture en générale (ou depuis le Covid/2019)?
+
+Pour prouver: Analyse du marché automobile avant et après 2019
