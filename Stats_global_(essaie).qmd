@@ -85,12 +85,12 @@ Marques
 
 ```{r}
 # Les marques de voitures qui ont le plus de commandes
-l <- count(cl_com, VEHICULE_MARQUE, sort = TRUE)
+by <- join_by(VEHICULE_ID)
+df <- left_join(vehicules[vehicules$VEHICULE_MARQUE %in% vehicules$VEHICULE_MARQUE,], commandes, by)
+
+l <- count(df, VEHICULE_MARQUE, sort = TRUE)
 l <- l[1:5,]
 l
-
-by <- join_by(VEHICULE_ID)
-df <- left_join(vehicules[vehicules$VEHICULE_MARQUE %in% l$VEHICULE_MARQUE,], commandes, by)
 
 ggplot(df) + aes(VEHICULE_MARQUE, fill=TYPE_LIVRAISON_COM) + geom_bar()
 
@@ -103,12 +103,12 @@ Modeles
 ```{r}
 
 # Les modeles de voitures qui ont le plus de commandes
-l <- count(cl_com, VEHICULE_MODELE, sort = TRUE)
+by <- join_by(VEHICULE_ID)
+df <- left_join(vehicules[vehicules$VEHICULE_MODELE %in% vehicules$VEHICULE_MODELE,], commandes, by)
+
+l <- count(df, VEHICULE_MODELE, sort = TRUE)
 l <- l[1:5,]
 l
-
-by <- join_by(VEHICULE_ID)
-df <- left_join(vehicules[vehicules$VEHICULE_MODELE %in% l$VEHICULE_MODELE,], commandes, by)
 
 ggplot(df) + aes(VEHICULE_MODELE, fill=TYPE_LIVRAISON_COM) + geom_bar()
 
