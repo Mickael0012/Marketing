@@ -20,23 +20,23 @@ library(dplyr)
 library(rAmCharts)
 
 fp <- "data/table_client.csv"
-clients <- read.csv(fp)
+df_client <- read.csv(fp)
 
 fp <- "data/table_vehicule.csv"
-vehicules <- read.csv(fp)
+df_vehic <- read.csv(fp)
 
 fp <- "data/table_commande_reprise.csv"
-commandes <- read.csv(fp)
+df_cmd_reprise <- read.csv(fp)
 
 fp <- "data/table_financement.csv"
-finances <- read.csv(fp)
+df_financt <- read.csv(fp)
 ```
 
 Preparation des données
 
 ```{r}
 
-commandes$DATE_PANIER <- as.Date(commandes$DATE_PANIER)
+df_cmd_reprise$DATE_PANIER <- as.Date(df_cmd_reprise$DATE_PANIER)
 
 ```
 
@@ -44,75 +44,70 @@ commandes$DATE_PANIER <- as.Date(commandes$DATE_PANIER)
 
 ```{r}
 # Nombre de clients
-N <- nrow(clients) # Total
+N <- nrow(df_client) # Total
 N
-table(clients$GENDER) #Homme/Femme
+table(df_client$GENDER) #Homme/Femme
 year <- 2026
-clients$AGE <- (year - clients$YEAR_NAISSANCE)
+df_client$AGE <- (year - df_client$YEAR_NAISSANCE)
 
 # En fonction de l'âge
-ggplot(clients) + aes(AGE, fill=GENDER) + geom_histogram()
+ggplot(df_client) + aes(AGE, fill=GENDER) + geom_histogram()
 
 ```
 
 **Analyse des véhicules**
 
 ```{r}
-nrow(vehicules) # Nb total de véhicules
+nrow(df_vehic) # Nb total de véhicules
 
-table(vehicules$VEHICULE_TYPE)
+table(df_vehic$VEHICULE_TYPE)
 # table(vehicules$VEHICULE_ENERGIE)
 # table(vehicules$VEHICULE_CATEGORIE)
 
-ggplot(vehicules) + aes(VEHICULE_CATEGORIE, fill=VEHICULE_ENERGIE) + geom_bar()
+ggplot(df_vehic) + aes(VEHICULE_CATEGORIE, fill=VEHICULE_ENERGIE) + geom_bar()
 
 # Nb véhicules par marque
-count(vehicules, VEHICULE_MARQUE, sort = TRUE)
+count(df_vehic, VEHICULE_MARQUE, sort = TRUE)
 
 # Nb véhicules par modele
-count(vehicules, VEHICULE_MODELE, sort = TRUE)
+count(df_vehic, VEHICULE_MODELE, sort = TRUE)
 ```
 
 **Transactions**
 
 ```{r}
-table(commandes$TYPE_PANIER)
+table(df_cmd_reprise$TYPE_PANIER)
 
-summary(commandes$DATE_PANIER)
+summary(df_cmd_reprise$DATE_PANIER)
 ```
 
-Marques
+Marques et Modeles
 
 ```{r}
 # Les marques de voitures qui ont le plus de commandes
 by <- join_by(VEHICULE_ID)
-df <- left_join(vehicules[vehicules$VEHICULE_MARQUE %in% vehicules$VEHICULE_MARQUE,], commandes, by)
+df_vehic_cmd_repr <- left_join(df_vehic, df_cmd_reprise, by)
 
-l <- count(df, VEHICULE_MARQUE, sort = TRUE)
-l <- l[1:5,]
+l <- count(df_vehic_cmd_repr, VEHICULE_MARQUE, sort = TRUE)$VEHICULE_MARQUE
+l <- l[1:5]
 l
 
-ggplot(df) + aes(VEHICULE_MARQUE, fill=TYPE_LIVRAISON_COM) + geom_bar()
+df_vehic_cmd_repr <- df_vehic_cmd_repr[df_vehic_cmd_repr$VEHICULE_MARQUE %in% l,]
 
-ggplot(df) + aes(VEHICULE_MARQUE, PRIX_VENTE_TTC_COM) + geom_boxplot()
-
-```
-
-Modeles
-
-```{r}
+ggplot(df_vehic_cmd_repr) + aes(VEHICULE_MARQUE, fill=TYPE_LIVRAISON_COM) + geom_bar()
+ggplot(df_vehic_cmd_repr) + aes(VEHICULE_MARQUE, PRIX_VENTE_TTC_COM) + geom_boxplot()
 
 # Les modeles de voitures qui ont le plus de commandes
-by <- join_by(VEHICULE_ID)
-df <- left_join(vehicules[vehicules$VEHICULE_MODELE %in% vehicules$VEHICULE_MODELE,], commandes, by)
 
-l <- count(df, VEHICULE_MODELE, sort = TRUE)
-l <- l[1:5,]
+l <- count(df_vehic_cmd_repr, VEHICULE_MODELE, sort = TRUE)$VEHICULE_MODELE
+l <- l[1:5]
 l
 
-ggplot(df) + aes(VEHICULE_MODELE, fill=TYPE_LIVRAISON_COM) + geom_bar()
+df_vehic_cmd_repr <- df_vehic_cmd_repr[df_vehic_cmd_repr$VEHICULE_MODELE %in% l,]
 
-ggplot(df) + aes(VEHICULE_MODELE, PRIX_VENTE_TTC_COM) + geom_boxplot()
+ggplot(df_vehic_cmd_repr) + aes(VEHICULE_MODELE, fill=TYPE_LIVRAISON_COM) + geom_bar()
+ggplot(df_vehic_cmd_repr) + aes(VEHICULE_MODELE, PRIX_VENTE_TTC_COM) + geom_boxplot()
+
 ```
 
 **Mon hypothèse:**
