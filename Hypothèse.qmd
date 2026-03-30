@@ -8,9 +8,9 @@ editor: visual
 
 Est-ce le sexe du client impacte le montant payé de la commande? Les hommes payent-ils plus chère que les femmes?
 
-Pour tester et visualizer, nous aurons besoins des tables des clients et des commandes.
+Pour tester et visualizer, nous aurons besoin des tables des clients et des commandes.
 
-**Library et import des données**
+**Library et import des données (Présent dans l'application finale)**
 
 ```{r}
 library(ggplot2)
@@ -34,51 +34,53 @@ df_cmd_reprise <- df_cmd_reprise[df_cmd_reprise$TYPE_PANIER == "Commande", ]
 
 # Création de la colonne des tranches d'âge (par 10)
 year <- 2026
-df_client$AGE <- (year - df_client$YEAR_NAISSANCE)
-df_client$AGE <- cut(df_client$AGE, breaks = seq(20, 100, 10))
-df_client <- df_client[!(is.na(df_client$AGE)), ]
+df_client$TRANCHE_AGE <- (year - df_client$YEAR_NAISSANCE)
+df_client$TRANCHE_AGE <- cut(df_client$TRANCHE_AGE, breaks = seq(20, 100, 10))
+df_client <- df_client[!(is.na(df_client$TRANCHE_AGE)), ]
 
 
 # Jointure des clients avec les commandes
 by <- join_by(ID_LEAD == LEAD_ID)
-df_client_cmd_repr <- inner_join(df_client, df_cmd_reprise, by, relationship = "many-to-many")
+df <- inner_join(df_client, df_cmd_reprise, by, relationship = "many-to-many")
 ```
 
 **Visualisation de la population totale et du montant des commandes**
 
 ```{r}
 # Sexe des clients en fonction de la tranche age
-ggplot(df_client) + aes(AGE, fill = GENDER) + geom_bar()
+ggplot(df) + aes(TRANCHE_AGE, fill = GENDER) + geom_bar()
+
 
 # Montant des commandes en fonction de la tranche d'age
-amBoxplot(PRIX_VENTE_TTC_COM~AGE, data = df_client_cmd_repr)
+amBoxplot(PRIX_VENTE_TTC_COM~TRANCHE_AGE, data = df)
 ```
 
 **Visualization du montant des commandes en fonction du sexe des clients**
 
 ```{r}
 # Montant totale des commandes
-amBoxplot(PRIX_VENTE_TTC_COM~GENDER, data = df_client_cmd_repr)
+amBoxplot(PRIX_VENTE_TTC_COM~GENDER, data = df)
 
 # Prix moyen de commande des hommes
-df_H <- df_client_cmd_repr[df_client_cmd_repr$GENDER == "H", ]
-amBoxplot(PRIX_VENTE_TTC_COM~AGE, data = df_H)
+df_H <- df[df$GENDER == "H", ]
+amBoxplot(PRIX_VENTE_TTC_COM~TRANCHE_AGE, data = df_H)
+
 
 # Prix moyen de commande des femmes
-df_F <- df_client_cmd_repr[df_client_cmd_repr$GENDER == "F", ]
-amBoxplot(PRIX_VENTE_TTC_COM~AGE, data = df_F)
+df_F <- df[df$GENDER == "F", ]
+amBoxplot(PRIX_VENTE_TTC_COM~TRANCHE_AGE, data = df_F)
 ```
 
 **Test de l'hypothèse: La différence du montant des commandes moyen entre les hommes et les femmes.**
 
 ```{r}
 # Montant moyen des hommes
-df_age_prix_H <- df_H[c("AGE", "PRIX_VENTE_TTC_COM")]
-avg_prix_H <- aggregate(df_age_prix_H, by=list(df_age_prix_H$AGE), FUN=mean)
+df_age_prix_H <- df_H[c("TRANCHE_AGE", "PRIX_VENTE_TTC_COM")]
+avg_prix_H <- aggregate(df_age_prix_H, by=list(df_age_prix_H$TRANCHE_AGE), FUN=mean)
 
 # Montant moyen des femmes
-df_age_prix_F <- df_F[c("AGE", "PRIX_VENTE_TTC_COM")]
-avg_prix_F <- aggregate(df_age_prix_F, by=list(df_age_prix_F$AGE), FUN=mean)
+df_age_prix_F <- df_F[c("TRANCHE_AGE", "PRIX_VENTE_TTC_COM")]
+avg_prix_F <- aggregate(df_age_prix_F, by=list(df_age_prix_F$TRANCHE_AGE), FUN=mean)
 
 # Calcul de la différence hommes-femmes
 avg_prix_H$DIFF_PRIX <- avg_prix_H$PRIX_VENTE_TTC_COM - avg_prix_F$PRIX_VENTE_TTC_COM
