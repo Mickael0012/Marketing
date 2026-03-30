@@ -83,7 +83,9 @@ avg_prix_F <- aggregate(df_age_prix_F, by=list(df_age_prix_F$AGE), FUN=mean)
 # Calcul de la différence hommes-femmes
 avg_prix_H$DIFF_PRIX <- avg_prix_H$PRIX_VENTE_TTC_COM - avg_prix_F$PRIX_VENTE_TTC_COM
 
-amBarplot("Group.1", "PRIX_VENTE_TTC_COM", data = avg_prix_H)
-
-
+ggplot(avg_prix_H) + aes(Group.1, DIFF_PRIX) + geom_col()
 ```
+
+**Conclusion**
+
+Hormis pour la dernière tranche d'âge dont l'effectif est trop faible pour être conclusif, les hommes de tout âge payent en moyenne des montants plus important pour les commandes de voitures. L'hypothèse est donc confimée bien que la marge d'erreur soit trop important pour que le verdict soit définitif à un niveau de confiance de 95%.
