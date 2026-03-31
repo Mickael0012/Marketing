@@ -1,0 +1,212 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+**Code à implémenter dans l'application**
+
+Il y a 3 graphique au total (dont un avec un jeu de donnée au choix parmi 3)
+
+***La library rAmCharts doit être importé dans l'application finale si cela n'est pas déjà fait!***
+
+**Pour la section hypothèse 3 de UI**
+
+```{r}
+
+tabItemtabItem(tabName = "hyp3",
+              div(class = "section-header",
+                  h2("Hypothèse 3"),
+                  p(style="font-size:16px;", "Est-ce le sexe du client impacte le montant payé de la commande? Les hommes payent-ils plus chère que les femmes?")
+              ),
+        fluidRow(
+                box(title = "Montant moyen des commandes en fonction du sexe des clients", width = 12, solidHeader = TRUE, status = "primary",
+                    amChartsOutput("cmd_prix_age"),
+                    hr(),
+                    tags$p(style = "color: #6b7080; font-style: italic;", 
+                           "Ce graphique nous montre déjà que les hommes payent en moyenne plus chère pour les commandes que les femmes, cependant la marge d'erreur est grande et la réalité peut s'avèrer complexe.")
+                )
+              ),
+        fluidRow(
+                box(title = "Montant moyen des commandes en fonction de l'âge", width = 12, solidHeader = TRUE, status = "primary",
+                    selectInput(inputId = "Genre_select", label = "Catégorie de la population client: ", selected = 1,
+choices = c("Total" = "Total", "Hommes" = "Hommes", "Femmes" = "Femmes")),
+                    amChartsOutput("cmd_prix_gender"),
+                    hr(),
+                    tags$p(style = "color: #6b7080; font-style: italic;", 
+                           "")
+                )
+              ),
+        fluidRow(
+                box(title = "Différence du montant moyen des commandes Hommes-Femmes en fonction de l'âge", width = 12, solidHeader = TRUE, status = "primary",
+                    plotOutput("cmd_prix_diff"),
+                    hr(),
+                    tags$p(style = "color: #6b7080; font-style: italic;", 
+                           "Conclusion:\n
+
+Hormis pour la dernière tranche d'âge dont l'effectif est trop faible pour être conclusif, les hommes de tout âge payent en moyenne des montants plus important pour les commandes de voitures. L'hypothèse est donc confimée bien que la marge d'erreur soit trop importante pour que le verdict soit définitif à un niveau de confiance de 95%.")
+                )
+              ),
+      )
+```
+
+**Pour la section server**
+
+```{r}
+
+# G1 - Montant en fonction du sexe des clients
+  output$cmd_prix_age <- renderAmCharts({
+    amBoxplot(PRIX_VENTE_TTC_COM~GENDER, data = df)
+  });
+  
+  # G2 - Montant des commandes en fonction du sexe, requiert input
+  output$cmd_prix_gender <- renderAmCharts({
+    
+    df_H <- df[df$GENDER == "H", ];
+    df_F <- df[df$GENDER == "F", ];
+    
+    l <- list(
+      Total = df,
+      Hommes = df_H,
+      Femmes = df_F
+    );
+
+    amBoxplot(PRIX_VENTE_TTC_COM~TRANCHE_AGE, data = l[[input$Genre_select]])
+  });
+  
+  
+  # G3 - Calcul de la différence hommes-femmes
+  output$cmd_prix_diff <- renderPlot({
+    
+    df_age_prix_H <- df[df$GENDER=="H", c("TRANCHE_AGE", "PRIX_VENTE_TTC_COM")];
+    avg_prix_H <- aggregate(df_age_prix_H, by=list(df_age_prix_H$TRANCHE_AGE), FUN=mean);
+    
+    df_age_prix_F <- df[df$GENDER=="F", c("TRANCHE_AGE", "PRIX_VENTE_TTC_COM")];
+    avg_prix_F <- aggregate(df_age_prix_F, by=list(df_age_prix_F$TRANCHE_AGE), FUN=mean);
+    
+    avg_prix_H$DIFF_PRIX <- avg_prix_H$PRIX_VENTE_TTC_COM - avg_prix_F$PRIX_VENTE_TTC_COM;
+    
+    ggplot(avg_prix_H) + aes(Group.1, DIFF_PRIX) + geom_col()
+  })
+```
+
+**Application de test**
+
+```{r}
+library(shiny)
+library(rAmCharts)
+library(shinydashboard)
+library(ggplot2)
+library(dplyr)
+
+fp <- "data/table_client.csv"
+df_client <- read.csv(fp)
+
+fp <- "data/table_commande_reprise.csv"
+df_cmd_reprise <- read.csv(fp)
+
+# Suppression des individus dont l'age ou le prix est NA.
+df_client <- df_client[!(is.na(df_client$YEAR_NAISSANCE)), ]
+df_cmd_reprise <- df_cmd_reprise[df_cmd_reprise$TYPE_PANIER == "Commande", ]
+
+
+# Création de la colonne des tranches d'âge (par 10)
+year <- 2026
+df_client$TRANCHE_AGE <- (year - df_client$YEAR_NAISSANCE)
+df_client$TRANCHE_AGE <- cut(df_client$TRANCHE_AGE, breaks = seq(20, 100, 10))
+df_client <- df_client[!(is.na(df_client$TRANCHE_AGE)), ]
+
+
+# Jointure des clients avec les commandes
+by <- join_by(ID_LEAD == LEAD_ID)
+df <- inner_join(df_client, df_cmd_reprise, by, relationship = "many-to-many")
+
+# ====================================================
+
+
+ui <- fluidPage(
+
+# Partie UI à utiliser dans l'application! ==================
+
+tabItem(tabName = "hyp3",
+              div(class = "section-header",
+                  h2("Hypothèse 3"),
+                  p(style="font-size:16px;", "Est-ce le sexe du client impacte le montant payé de la commande? Les hommes payent-ils plus chère que les femmes?")
+              ),
+        fluidRow(
+                box(title = "Montant moyen des commandes en fonction du sexe des clients", width = 12, solidHeader = TRUE, status = "primary",
+                    amChartsOutput("cmd_prix_age"),
+                    hr(),
+                    tags$p(style = "color: #6b7080; font-style: italic;", 
+                           "Ce graphique nous montre déjà que les hommes payent en moyenne plus chère pour les commandes que les femmes, cependant la marge d'erreur est grande et la réalité peut s'avèrer complexe.")
+                )
+              ),
+        fluidRow(
+                box(title = "Montant moyen des commandes en fonction de l'âge", width = 12, solidHeader = TRUE, status = "primary",
+                    selectInput(inputId = "Genre_select", label = "Catégorie de la population client: ", selected = 1,
+choices = c("Total" = "Total", "Hommes" = "Hommes", "Femmes" = "Femmes")),
+                    amChartsOutput("cmd_prix_gender"),
+                    hr(),
+                    tags$p(style = "color: #6b7080; font-style: italic;", 
+                           "")
+                )
+              ),
+        fluidRow(
+                box(title = "Différence du montant moyen des commandes Hommes-Femmes en fonction de l'âge", width = 12, solidHeader = TRUE, status = "primary",
+                    plotOutput("cmd_prix_diff"),
+                    hr(),
+                    tags$p(style = "color: #6b7080; font-style: italic;", 
+                           "Conclusion:\n
+
+Hormis pour la dernière tranche d'âge dont l'effectif est trop faible pour être conclusif, les hommes de tout âge payent en moyenne des montants plus important pour les commandes de voitures. L'hypothèse est donc confimée bien que la marge d'erreur soit trop importante pour que le verdict soit définitif à un niveau de confiance de 95%.")
+                )
+              ),
+      )
+
+
+)
+
+# ================================================
+
+server <- function(input, output) {
+
+  # G1 - Montant en fonction du sexe des clients
+  output$cmd_prix_age <- renderAmCharts({
+    amBoxplot(PRIX_VENTE_TTC_COM~GENDER, data = df)
+  });
+  
+  # G2 - Montant des commandes en fonction du sexe, requiert input
+  output$cmd_prix_gender <- renderAmCharts({
+    
+    df_H <- df[df$GENDER == "H", ];
+    df_F <- df[df$GENDER == "F", ];
+    
+    l <- list(
+      Total = df,
+      Hommes = df_H,
+      Femmes = df_F
+    );
+
+    amBoxplot(PRIX_VENTE_TTC_COM~TRANCHE_AGE, data = l[[input$Genre_select]])
+  });
+  
+  
+  # G3 - Calcul de la différence hommes-femmes
+  output$cmd_prix_diff <- renderPlot({
+    
+    df_age_prix_H <- df[df$GENDER=="H", c("TRANCHE_AGE", "PRIX_VENTE_TTC_COM")];
+    avg_prix_H <- aggregate(df_age_prix_H, by=list(df_age_prix_H$TRANCHE_AGE), FUN=mean);
+    
+    df_age_prix_F <- df[df$GENDER=="F", c("TRANCHE_AGE", "PRIX_VENTE_TTC_COM")];
+    avg_prix_F <- aggregate(df_age_prix_F, by=list(df_age_prix_F$TRANCHE_AGE), FUN=mean);
+    
+    avg_prix_H$DIFF_PRIX <- avg_prix_H$PRIX_VENTE_TTC_COM - avg_prix_F$PRIX_VENTE_TTC_COM;
+    
+    ggplot(avg_prix_H) + aes(Group.1, DIFF_PRIX) + geom_col()
+  })
+
+
+}
+
+shinyApp(ui = ui, server = server)
+```
